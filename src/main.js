@@ -7,6 +7,10 @@ var nodes = [];
 
 var level = 0;
 
+var turns=0;
+
+var infected = 0;
+
 function mutate(value){
   return Math.max(value+((Math.random()*2)-1),1);
 }
@@ -17,6 +21,7 @@ function Virus(el,size,speed,hp) {
   this.speed = speed;
   this.hp = hp;
   this.location = null;
+  this.dormant = false;
 }
 
 function Node(el) {
@@ -47,11 +52,13 @@ Virus.prototype.setLocation = function(node) {
 
 Virus.prototype.update = function() {
   if(this.location.infectionLevel>this.location.resilience){
+    if(!this.dormant) infected++;
+    this.dormant = true;
+
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
       if(this.location.linkedNodes[i].infectionLevel<this.location.linkedNodes[i].resilience) {
         if(!this.location.linkedNodes[i].infector) {
           var newVirus = this.split();
-          console.log("split");
           newVirus.setLocation(this.location.linkedNodes[i]);
           viruses.push(newVirus);
           break;
@@ -60,7 +67,6 @@ Virus.prototype.update = function() {
     }
   } else {
     this.location.infectionLevel+=this.speed;
-    console.log(this.location.infectionLevel);
   }
 };
 
@@ -76,6 +82,11 @@ function generateMap(level){
       currentNode = node;
     }
   }
+  for (var i = level - 1; i >= 0; i--) {
+    var node1 = nodes[Math.floor(Math.random() * nodes.length)];
+    var node2 = nodes[Math.floor(Math.random() * nodes.length)];
+    if(node1!=node2) node1.addConnectedNode(node2);
+  }
   console.log(nodes);
 }
 
@@ -89,14 +100,13 @@ function update() {
   }
 }
 
-generateMap(1);
+generateMap(5);
 releaseVirus();
 
-var turns=0;
 
-while(viruses.length<nodes.length) { // last node never gets infected - fix
+while(infected<nodes.length) {
   turns++;
-  console.log(viruses.length+"<"+nodes.length);  
+  console.log(infected+"<"+nodes.length);  
   update();
 }
 console.log("completed in "+turns+" turns.");
