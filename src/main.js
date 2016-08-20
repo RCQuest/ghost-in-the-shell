@@ -3,9 +3,9 @@ var Sprites = {
   VIRUS: "❉"
 }
 
-var CHAR_HEIGHT = 14;
-var CHAR_WIDTH = 14;
-var FONT = "16px Courier";
+var CHAR_HEIGHT = 20;
+var CHAR_WIDTH = 20;
+var FONT = "24px Courier";
 
 var H = {
   sp: function(x, y, whole) {
@@ -23,6 +23,9 @@ var H = {
     c.fillStyle = '#'+l;
     c.textAlign = a || 'left';
     c.fillText(t, x, y);
+  },
+  RE: function(arr) {
+    return arr[Math.floor(Math.random()*arr.length)];
   }
 };
 
@@ -117,13 +120,17 @@ function Network(level) {
   this.nodes = this.generateMap(level);
 };
 
-Network.prototype.generateMap = function(level){
+Network.prototype.generateMapLegacy = function(level){
   var mapSize = level*5;
-  var currentNode = new Node(null);
+  var currentNode = new Node(
+    Math.floor((Game.width)*Math.random()),
+    Math.floor((Game.height)*Math.random()));
   var nodes = [];
   nodes = [ currentNode ];
   while(nodes.length < mapSize){
-    var node = new Node(null);
+    var node = new Node(
+      Math.floor((Game.width)*Math.random()),
+      Math.floor((Game.height)*Math.random()));
     currentNode.addConnectedNode(node);
     nodes.push(node);
     if(Math.random()>0.5){
@@ -139,6 +146,36 @@ Network.prototype.generateMap = function(level){
   return nodes;
 }
 
+Network.prototype.generateMap = function(level) {
+  var mapSize = level*5;
+  var nodes = [];
+  var direction = [[1,0],[0,1],[-1,0],[0,-1]];
+  nodes = [ new Node(Math.floor(Game.width/2),Math.floor(Game.height/2)) ];
+  while(nodes.length < mapSize){
+    var nextNode = H.RE(nodes);
+    var isOccupied = false;
+    var nX = nextNode.x+direction[nodes.length%direction.length][0];
+    var nY = nextNode.y+direction[nodes.length%direction.length][1];
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if(nodes[i].x==nX&&nodes[i].y==nY) isOccupied=true;
+    }
+    if(!isOccupied) nodes.push(new Node(nX,nY));
+    console.log(nX+","+nY);
+  }
+  for (var i = nodes.length - 1; i >= 0; i--) {
+    for (var j = nodes.length - 1; j >= 0; j--) {
+      for (var k = direction.length - 1; k >= 0; k--) {
+        if(nodes[i].x+direction[k][0]==nodes[j].x
+          &&nodes[i].y+direction[k][1]==nodes[j].y)
+          nodes[i].addConnectedNode(nodes[j]);
+      }
+    }
+  }
+  console.log(nodes);
+  return nodes;
+
+};
+
 function Virus(el,size,speed,hp) {
   this.element = el;
   this.size = size;
@@ -148,24 +185,26 @@ function Virus(el,size,speed,hp) {
   this.dormant = false;
 };
 
-function Node() {
+function Node(x,y) {
   this.char = new Char(
     Sprites.NODE, 
     "FFFFFF", 
     "FF0000", 
     1);
-  this.x = Math.floor((Game.width)*Math.random());
-  this.y = Math.floor((Game.height)*Math.random());
+  this.x = x;
+  this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.resilience = 10;
+  this.resilience = 1;
   this.infector = null;
 
 };
 
 Node.prototype.addConnectedNode = function(node) {
-  this.linkedNodes.push(node);
-  node.linkedNodes.push(this);
+  if(this.linkedNodes.indexOf(node)==-1)
+    this.linkedNodes.push(node);
+  if(node.linkedNodes.indexOf(this)==-1)
+    node.linkedNodes.push(this);
 };
 
 Node.prototype.isInfected = function() {
@@ -253,7 +292,7 @@ var UI = {
   },
   update : function(dt) {
     if(Game.state==States.INIT) {
-      Game.map = new Network(2);
+      Game.map = new Network(10);
       Game.player.viruses[0].setLocation(Game.map.nodes[0]);
       Game.state = States.INFECTING;
     } 
