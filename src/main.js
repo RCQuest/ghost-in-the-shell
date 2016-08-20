@@ -10,6 +10,15 @@ var SPRITES = {
 "       '---------'\n"
 };
 
+var H = {
+  sp: function(x, y, whole) {
+    if(whole || (whole === undefined))
+      return {x: parseInt(x)*CHAR_WIDTH, y: parseInt(y)*CHAR_HEIGHT};
+    else
+      return {x: x*CHAR_WIDTH, y: y*CHAR_HEIGHT};
+  },
+};
+
 function Body(x, y, width, height) {
   var t = this;
   t.x = x; t.y = y; t.width = width; t.height = height;
@@ -18,7 +27,6 @@ function Body(x, y, width, height) {
     t.x += t.velocity.x * dt;
     t.y += t.velocity.y * dt;
   };
-  // this.impact = function
 };
 
 var p_i = 1;
@@ -46,12 +54,9 @@ function Renderer(width, height, alpha) {
     var c = H.sp(x || 0, y || 0, t.whole);
     d.drawImage(t.c, c.x, c.y);
   };
-  this.flip = function(){
-    H.FlipCanvas(t.c);
-  };
   this.kill = function() {
     t.c = null;
-    H.Null(t);
+    t = null;
   }
 };
 
@@ -69,17 +74,9 @@ function Sprite(x, y, renderer) {
   };
   t.kill = function() {
     t.renderer.kill();
-    H.Null(t)
+    t = null;
   };
 };
-
-function renderMultilineText(text,lineheight,x,y){
-  var lines = text.split("\n");
-  for (var i = 0; i < lines.length; i++) {
-    ctx.fillText(lines[i],x,y); 
-    y+=lineheight;
-  }
-}
 
 function Player(){
   this.viruses = [ new Virus(null,1,1,1) ];
@@ -128,7 +125,7 @@ function Node(el) {
   this.element = el;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.resilience = 100;
+  this.resilience = 10;
   this.infector = null;
 };
 
@@ -154,7 +151,7 @@ Virus.prototype.mutate = function(value){
   return Math.max(value+((Math.random()*2)-1),1);
 };
 
-Virus.prototype.update = function() {
+Virus.prototype.update = function(dt) {
   if(this.location.infectionLevel>this.location.resilience){
     if(!this.dormant) Game.infected++;
     this.dormant = true;
@@ -162,6 +159,7 @@ Virus.prototype.update = function() {
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
       if(this.location.linkedNodes[i].infectionLevel<this.location.linkedNodes[i].resilience) {
         if(!this.location.linkedNodes[i].infector) {
+          console.log("splitting!");
           var newVirus = this.split();
           newVirus.setLocation(this.location.linkedNodes[i]);
           Game.player.viruses.push(newVirus);
@@ -170,29 +168,91 @@ Virus.prototype.update = function() {
       }
     }
   } else {
-    this.location.infectionLevel+=this.speed;
+    this.location.infectionLevel+=this.speed*dt;
   }
 };
+
+var canvas = document.querySelector('#game');
+var ctx = canvas.getContext('2d');
+
+var States = {
+  INIT : 0,
+  INFECTING : 1,
+  SUCCESS : 2,
+  DEFEAT : 3
+}
+
+var FONT = "Courier";
 
 var Game = {
+  state : States.INIT,
   level : 1,
-  turns : 0,
   infected : 0,
   player : new Player(),
-  map : new Network(25),
+  map : null,
+  time : 1,
+  active : true,
+  width : canvas.width,
+  height : canvas.height,
+  allNodesAreInfected : function() {
+    return (Game.infected>=Game.map.nodes.length);
+  }
 };
 
-function update(){
-    for (var i = Game.player.viruses.length - 1; i >= 0; i--) {
-      Game.player.viruses[i].update();
+var UI = {
+  ctx : null,
+  renderer : null,
+  init : function(ctx) {
+    UI.ctx = ctx;
+    UI.renderer = new Renderer(Game.width, Game.height, 1);
+  },
+  update : function(dt) {
+    if(Game.state==States.INIT) {
+      Game.map = new Network(25);
+      Game.player.viruses[0].setLocation(Game.map.nodes[0]);
+      Game.state = States.INFECTING;
+    } 
+    else if(Game.state==States.INFECTING) {
+      for (var i = Game.player.viruses.length - 1; i >= 0; i--) {
+        Game.player.viruses[i].update(dt);
+      }
+      if(Game.allNodesAreInfected()) {
+        Game.state = States.SUCCESS;
+        console.log("infected all nodes!");
+      }
     }
+  },
+  draw : function() {
+    var ctx =  UI.renderer.x;
+    ctx.clearRect(0, 0, Game.width, Game.height);
+  }
+}
+
+var last_stamp = 0;
+
+UI.init(ctx);
+
+function update(timestamp) {
+
+  var dt = (timestamp - last_stamp)/1000;
+  last_stamp = timestamp;
+
+  if(Game.active) {
+
+    dt = dt * Game.time;
+
+    UI.update(dt);
+
+    UI.draw();
+
+    // if(CALLBACKS)
+    //   CALLBACKS.forEach(function(cb){
+    //     cb.f(dt);
+    //   });
+    // H.MouseClick = false;
   }
 
-Game.player.releaseVirus(Game.map.nodes);
-
-while(Game.infected<Game.map.nodes.length) {
-  Game.turns++;
-  console.log(Game.infected+"<"+Game.map.nodes.length);  
-  update();
+  window.requestAnimationFrame(update);
 }
-console.log("completed in "+Game.turns+" turns.");
+
+window.requestAnimationFrame(update);
