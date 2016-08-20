@@ -1,14 +1,11 @@
-var SPRITES = {
-  computerAscii : "       ___________\n"+
-"      |.---------.|\n"+
-"      ||         ||\n"+
-"      ||         ||\n"+
-"      ||         ||\n"+
-"      |'---------'|\n"+
-"       ‾)__ ____(‾\n"+
-"       [=== -- o ]\n"+
-"       '---------'\n"
-};
+var Sprites = {
+  NODE: "▣",
+  VIRUS: "❉"
+}
+
+var CHAR_HEIGHT = 14;
+var CHAR_WIDTH = 14;
+var FONT = "16px Courier";
 
 var H = {
   sp: function(x, y, whole) {
@@ -17,6 +14,36 @@ var H = {
     else
       return {x: x*CHAR_WIDTH, y: y*CHAR_HEIGHT};
   },
+  R: function(x, y, w, h, c, f) {
+    c.fillStyle = '#'+f;
+    c.fillRect(x, y, w, h);
+  },
+  T: function(t, x, y, c, f, l, a, w) {
+    c.font = f;
+    c.fillStyle = '#'+l;
+    c.textAlign = a || 'left';
+    c.fillText(t, x, y);
+  }
+};
+
+function Char(s, color, bg, alpha) {
+  var t = this;
+  t.s = s;
+  t.color = color;
+  t.bg = bg;
+  t.r = t.renderer = new Renderer((CHAR_WIDTH*s.length), CHAR_HEIGHT, alpha);
+  if(t.bg !== undefined)
+  {
+    H.R(0, 0, (CHAR_WIDTH*s.length), CHAR_HEIGHT, t.r.x, t.bg);
+  }
+  H.T(t.s, (CHAR_WIDTH*s.length)/2, CHAR_HEIGHT -1, t.r.x, FONT, t.color, 'center');
+  t.stamp = function(d, x, y){
+    t.r.stamp(d, x, y);
+  };
+  t.kill = function(){
+    t.r.kill();
+    t = null;
+  };
 };
 
 function Body(x, y, width, height) {
@@ -121,18 +148,38 @@ function Virus(el,size,speed,hp) {
   this.dormant = false;
 };
 
-function Node(el) {
-  this.element = el;
+function Node() {
+  this.char = new Char(
+    Sprites.NODE, 
+    "FFFFFF", 
+    "FF0000", 
+    1);
+  this.x = Math.floor((Game.width)*Math.random());
+  this.y = Math.floor((Game.height)*Math.random());
   this.linkedNodes = [];
   this.infectionLevel = 0;
   this.resilience = 10;
   this.infector = null;
+
 };
 
 Node.prototype.addConnectedNode = function(node) {
   this.linkedNodes.push(node);
   node.linkedNodes.push(this);
 };
+
+Node.prototype.isInfected = function() {
+  return this.infectionLevel>this.resilience;
+};
+
+Node.prototype.draw = function() {
+  this.char = new Char(
+    Sprites.NODE,
+    "FFFFFF",
+    this.isInfected() ? "00FF00" : "FF0000",
+    1);
+  this.char.r.stamp(UI.ctx,this.x,this.y);
+}
 
 Virus.prototype.split = function() {
   return new Virus(
@@ -180,9 +227,7 @@ var States = {
   INFECTING : 1,
   SUCCESS : 2,
   DEFEAT : 3
-}
-
-var FONT = "Courier";
+};
 
 var Game = {
   state : States.INIT,
@@ -192,8 +237,8 @@ var Game = {
   map : null,
   time : 1,
   active : true,
-  width : canvas.width,
-  height : canvas.height,
+  width : canvas.width/CHAR_WIDTH,
+  height : canvas.height/CHAR_HEIGHT,
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
   }
@@ -208,7 +253,7 @@ var UI = {
   },
   update : function(dt) {
     if(Game.state==States.INIT) {
-      Game.map = new Network(25);
+      Game.map = new Network(2);
       Game.player.viruses[0].setLocation(Game.map.nodes[0]);
       Game.state = States.INFECTING;
     } 
@@ -225,6 +270,9 @@ var UI = {
   draw : function() {
     var ctx =  UI.renderer.x;
     ctx.clearRect(0, 0, Game.width, Game.height);
+    Game.map.nodes.forEach(function(node){
+      node.draw();
+    });
   }
 }
 
