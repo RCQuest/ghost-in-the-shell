@@ -1,7 +1,24 @@
 var Sprites = {
   NODE: "▣",
-  VIRUS: "❉"
-}
+  VIRUS: "❉",
+  ARGOLAB: "🅰",
+  MEGATEC: "🅼",
+  NANOCORP: "🅽"
+};
+
+var Colors = {
+  WHITE : 'FFFFFF',
+  BULKY : 'FF0000',
+  TINY : '00FF00',
+  SPEEDY : 'FFFF00',
+  ERROR : 'FF00FF',
+  DEAD : '999999',
+  NEUTRAL : '000000',
+  NODE : 'FFFFFF',
+  NODE_INFECTED : '00FF00',
+  NODE_UNINFECTED : 'FF0000',
+  BG : '000000'
+};
 
 var CHAR_HEIGHT = 30;
 var CHAR_WIDTH = 30;
@@ -245,8 +262,8 @@ Node.prototype.isInfected = function() {
 Node.prototype.draw = function() {
   this.char = new Char(
     Sprites.NODE,
-    "FFFFFF",
-    this.isInfected() ? "00FF00" : "FF0000",
+    Colors.NODE,
+    this.isInfected() ? Colors.NODE_INFECTED : Colors.NODE_UNINFECTED,
     1);
   this.char.r.stamp(UI.ctx,this.x,this.y);
 };
@@ -275,17 +292,6 @@ Virus.prototype.setLocation = function(node) {
 Virus.prototype.mutate = function(value){
   return Math.max(value+((Math.random()*2)-1),Math.exp((1-Game.level)/10));
 };
-
-var Colors = {
-  WHITE : 'FFFFFF',
-  BULKY : 'FF0000',
-  TINY : '00FF00',
-  SPEEDY : 'FFFF00',
-  ERROR : 'FF00FF',
-  DEAD : '999999',
-  NEUTRAL : '000000'
-
-}
 
 Virus.prototype.generateColoration = function(sizeRating,speed,hp) {
   if(sizeRating>speed&&sizeRating>hp){
@@ -351,6 +357,17 @@ var Game = {
   height : canvas.height/CHAR_HEIGHT,
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
+  },
+  allVirusesAreDormant : function(){
+    for (var i = this.player.viruses.length - 1; i >= 0; i--) {
+      if(!this.player.viruses[i].dormant) {
+        return false;
+      }
+    }
+    return true;
+  },
+  hasWonThisRound : function() {
+    return (this.infected*2 > this.map.nodes.length);
   }
 };
 
@@ -373,7 +390,16 @@ var UI = {
       }
       if(Game.allNodesAreInfected()) {
         Game.state = States.SUCCESS;
-        console.log("infected all nodes!");
+        console.log("Infected all nodes!");
+      } else if(Game.allVirusesAreDormant()) {
+        console.log("All viruses are dormant.");
+        if(Game.hasWonThisRound()) {
+          console.log("Success.");
+          Game.state = States.SUCCESS;
+        } else {
+          console.log("Defeat!");
+          Game.state = States.DEFEAT;
+        }
       }
     }
     else if(Game.state==States.SUCCESS) {
@@ -396,13 +422,12 @@ var UI = {
           newVirus.setLocation(Game.map.nodes[0]);
           Game.state=States.INFECTING;
         }
-        console.log(virus);
       }
     }
     H.MouseClick=false;
   },
   draw : function() {
-    UI.ctx.fillStyle = '#000000';
+    UI.ctx.fillStyle = '#'+Colors.BG;
     UI.ctx.fillRect(0, 0, Game.width*CHAR_WIDTH, Game.height*CHAR_HEIGHT);
     for (var i = Game.map.nodes.length - 1; i >= 0; i--) {
       Game.map.nodes[i].draw();
@@ -442,12 +467,6 @@ function update(timestamp) {
     UI.update(dt);
 
     UI.draw();
-
-    // if(CALLBACKS)
-    //   CALLBACKS.forEach(function(cb){
-    //     cb.f(dt);
-    //   });
-    // H.MouseClick = false;
   }
 
   window.requestAnimationFrame(update);
