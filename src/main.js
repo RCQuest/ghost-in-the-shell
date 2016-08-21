@@ -8,16 +8,16 @@ var Sprites = {
 
 var Colors = {
   WHITE : 'FFFFFF',
-  BULKY : 'FF0000',
-  TINY : '00FF00',
-  SPEEDY : 'FFFF00',
+  BULKY : 'f400b6',
+  TINY : '88b700',
+  SPEEDY : '00b7b7',
   ERROR : 'FF00FF',
-  DEAD : '999999',
+  DEAD : '817e93',
   NEUTRAL : '000000',
-  NODE : 'FFFFFF',
-  NODE_INFECTED : '00FF00',
-  NODE_UNINFECTED : 'FF0000',
-  BG : '000000'
+  NODE : 'd6d0da',
+  NODE_INFECTED : '444057',
+  NODE_UNINFECTED : '817e93',
+  BG : '363246'
 };
 
 var CHAR_HEIGHT = 30;
@@ -243,8 +243,8 @@ function Node(x,y) {
   this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.antiVirusPower = 0.49;
-  this.resilience = 1;
+  this.antiVirusPower = Game.baseAntiVirusLevel();
+  this.resilience = Game.baseResilienceLevel();
   this.infector = null;
 };
 
@@ -368,6 +368,12 @@ var Game = {
   },
   hasWonThisRound : function() {
     return (this.infected*2 > this.map.nodes.length);
+  },
+  baseResilienceLevel : function() {
+    return 1+(this.level-1)*0.2;
+  },
+  baseAntiVirusLevel : function() {
+    return 0.45+(this.level-1)*0.05;
   }
 };
 

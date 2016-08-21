@@ -11,20 +11,24 @@
     <script type="text/javascript">
       var Sprites = {
   NODE: "▣",
-  VIRUS: "❉"
+  VIRUS: "❉",
+  ARGOLAB: "🅰",
+  MEGATEC: "🅼",
+  NANOCORP: "🅽"
 };
 
 var Colors = {
   WHITE : 'FFFFFF',
-  BULKY : 'FF0000',
-  TINY : '00FF00',
-  SPEEDY : 'FFFF00',
+  BULKY : 'f400b6',
+  TINY : '88b700',
+  SPEEDY : '00b7b7',
   ERROR : 'FF00FF',
-  DEAD : '999999',
+  DEAD : '817e93',
   NEUTRAL : '000000',
-  NODE : 'FFFFFF',
-  NODE_INFECTED : '00FF00',
-  NODE_UNINFECTED : 'FF0000'
+  NODE : 'd6d0da',
+  NODE_INFECTED : '444057',
+  NODE_UNINFECTED : '817e93',
+  BG : '363246'
 };
 
 var CHAR_HEIGHT = 30;
@@ -250,8 +254,8 @@ function Node(x,y) {
   this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.antiVirusPower = 0.49;
-  this.resilience = 1;
+  this.antiVirusPower = Game.baseAntiVirusLevel();
+  this.resilience = Game.baseResilienceLevel();
   this.infector = null;
 };
 
@@ -364,6 +368,23 @@ var Game = {
   height : canvas.height/CHAR_HEIGHT,
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
+  },
+  allVirusesAreDormant : function(){
+    for (var i = this.player.viruses.length - 1; i >= 0; i--) {
+      if(!this.player.viruses[i].dormant) {
+        return false;
+      }
+    }
+    return true;
+  },
+  hasWonThisRound : function() {
+    return (this.infected*2 > this.map.nodes.length);
+  },
+  baseResilienceLevel : function() {
+    return 1+(this.level-1)*0.2;
+  },
+  baseAntiVirusLevel : function() {
+    return 0.45+(this.level-1)*0.05;
   }
 };
 
@@ -386,7 +407,16 @@ var UI = {
       }
       if(Game.allNodesAreInfected()) {
         Game.state = States.SUCCESS;
-        console.log("infected all nodes!");
+        console.log("Infected all nodes!");
+      } else if(Game.allVirusesAreDormant()) {
+        console.log("All viruses are dormant.");
+        if(Game.hasWonThisRound()) {
+          console.log("Success.");
+          Game.state = States.SUCCESS;
+        } else {
+          console.log("Defeat!");
+          Game.state = States.DEFEAT;
+        }
       }
     }
     else if(Game.state==States.SUCCESS) {
@@ -409,13 +439,12 @@ var UI = {
           newVirus.setLocation(Game.map.nodes[0]);
           Game.state=States.INFECTING;
         }
-        console.log(virus);
       }
     }
     H.MouseClick=false;
   },
   draw : function() {
-    UI.ctx.fillStyle = '#000000';
+    UI.ctx.fillStyle = '#'+Colors.BG;
     UI.ctx.fillRect(0, 0, Game.width*CHAR_WIDTH, Game.height*CHAR_HEIGHT);
     for (var i = Game.map.nodes.length - 1; i >= 0; i--) {
       Game.map.nodes[i].draw();
