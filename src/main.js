@@ -231,6 +231,7 @@ function Node(x,y) {
   this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
+  this.antiVirusPower = 1;
   this.resilience = 1;
   this.infector = null;
 
@@ -282,19 +283,17 @@ Virus.prototype.mutate = function(value){
 };
 
 Virus.prototype.update = function(dt) {
+  if(this.dormant) return;
   if(this.location.infectionLevel>this.location.resilience){
-    if(!this.dormant) Game.infected++;
     this.dormant = true;
-
+    Game.infected++;
+  
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
-      if(this.location.linkedNodes[i].infectionLevel<this.location.linkedNodes[i].resilience) {
-        if(!this.location.linkedNodes[i].infector) {
-          console.log("splitting!");
-          var newVirus = this.split();
-          newVirus.setLocation(this.location.linkedNodes[i]);
-          Game.player.viruses.push(newVirus);
-          break;
-        }
+      if(!this.location.linkedNodes[i].infector) {
+        console.log("splitting!");
+        var newVirus = this.split();
+        newVirus.setLocation(this.location.linkedNodes[i]);
+        Game.player.viruses.push(newVirus);
       }
     }
   } else {
