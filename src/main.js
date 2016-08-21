@@ -3,11 +3,13 @@ var Sprites = {
   VIRUS: "❉"
 }
 
-var CHAR_HEIGHT = 20;
-var CHAR_WIDTH = 20;
-var FONT = "24px Courier";
+var CHAR_HEIGHT = 30;
+var CHAR_WIDTH = 30;
+var FONT = "36px Courier";
 
 var H = {
+  MouseCoords : null,
+  MouseClick : false,
   sp: function(x, y, whole) {
     if(whole || (whole === undefined))
       return {x: parseInt(x)*CHAR_WIDTH, y: parseInt(y)*CHAR_HEIGHT};
@@ -109,11 +111,26 @@ function Sprite(x, y, renderer) {
 };
 
 function Player(){
-  this.viruses = [ new Virus(null,1,1,1) ];
+  this.viruses = [ new Virus(1,1,1) ];
 }
+
+Player.prototype.getVirusFromPosition = function(x,y) {
+  for (var i = this.viruses.length - 1; i >= 0; i--) {
+    if(this.viruses[i].location.x==x&&this.viruses[i].location.y==y) 
+      return this.viruses[i];
+  }
+  return null;
+};
 
 Player.prototype.releaseVirus = function(nodes) {
   this.viruses[0].setLocation(nodes[0]);
+};
+
+Player.prototype.killViruses = function() {
+  for (var i = this.viruses.length - 1; i >= 0; i--) {
+    this.viruses[i].char.kill();
+    this.viruses.splice(i,1);
+  }
 };
 
 function Network(level) {
@@ -146,6 +163,21 @@ Network.prototype.generateMapLegacy = function(level){
   return nodes;
 }
 
+Network.prototype.killNodes = function() {
+  for (var i = this.nodes.length - 1; i >= 0; i--) {
+    this.nodes[i].char.kill();
+    this.nodes.splice(i,1);
+  }
+};
+
+Network.prototype.getNodeFromPosition = function(x,y) {
+  for (var i = this.nodes.length - 1; i >= 0; i--) {
+    if(this.nodes[i].x==x&&this.nodes[i].y==y) 
+      return this.nodes[i];
+  }
+  return null;
+};
+
 Network.prototype.generateMap = function(level) {
   var mapSize = level*5;
   var nodes = [];
@@ -176,8 +208,12 @@ Network.prototype.generateMap = function(level) {
 
 };
 
-function Virus(el,size,speed,hp) {
-  this.element = el;
+function Virus(size,speed,hp) {
+  this.char = new Char(
+    Sprites.VIRUS, 
+    "000000", 
+    undefined, 
+    1);
   this.size = size;
   this.speed = speed;
   this.hp = hp;
@@ -218,11 +254,19 @@ Node.prototype.draw = function() {
     this.isInfected() ? "00FF00" : "FF0000",
     1);
   this.char.r.stamp(UI.ctx,this.x,this.y);
-}
+};
+
+Virus.prototype.draw = function() {
+  this.char = new Char(
+    Sprites.VIRUS,
+    "000000",
+    undefined,
+    1);
+  this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
+};
 
 Virus.prototype.split = function() {
   return new Virus(
-    null,
     this.mutate(this.size),
     this.mutate(this.speed),
     this.mutate(this.hp));
@@ -292,7 +336,7 @@ var UI = {
   },
   update : function(dt) {
     if(Game.state==States.INIT) {
-      Game.map = new Network(10);
+      Game.map = new Network(Game.level);
       Game.player.viruses[0].setLocation(Game.map.nodes[0]);
       Game.state = States.INFECTING;
     } 
@@ -305,17 +349,57 @@ var UI = {
         console.log("infected all nodes!");
       }
     }
+    else if(Game.state==States.SUCCESS) {
+      if(H.MouseClick){
+        
+        var virus = Game.player.getVirusFromPosition(
+          Math.floor(H.MouseCoords.x/CHAR_WIDTH),
+          Math.floor(H.MouseCoords.y/CHAR_HEIGHT));
+        if(virus) {
+          var newVirus = new Virus(virus.size,virus.speed,virus.hp);
+          Game.infected=0;
+          Game.level++;
+          Game.map.killNodes();
+          Game.player.killViruses();
+          Game.map = null;
+          Game.map = new Network(Game.level);
+          
+          Game.player.viruses = null;
+          Game.player.viruses = [newVirus];
+          newVirus.setLocation(Game.map.nodes[0]);
+          Game.state=States.INFECTING;
+        }
+        console.log(virus);
+      }
+    }
+    H.MouseClick=false;
   },
   draw : function() {
-    var ctx =  UI.renderer.x;
-    ctx.clearRect(0, 0, Game.width, Game.height);
-    Game.map.nodes.forEach(function(node){
-      node.draw();
-    });
+    UI.ctx.fillStyle = '#000000';
+    UI.ctx.fillRect(0, 0, Game.width*CHAR_WIDTH, Game.height*CHAR_HEIGHT);
+    for (var i = Game.map.nodes.length - 1; i >= 0; i--) {
+      Game.map.nodes[i].draw();
+    }
+    for (var i = Game.player.viruses.length - 1; i >= 0; i--) {
+      Game.player.viruses[i].draw();
+    }
   }
 }
 
 var last_stamp = 0;
+
+function getMousePos(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  if(evt != undefined)
+    return {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
+  else
+    return H.MouseCoords;
+}
+
+canvas.addEventListener('click', function(event) {
+  H.MouseCoords = getMousePos(canvas, event);
+  H.MouseClick = true;
+});
 
 UI.init(ctx);
 
