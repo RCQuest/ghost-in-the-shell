@@ -138,7 +138,7 @@ function Network(level) {
 };
 
 Network.prototype.generateMapLegacy = function(level){
-  var mapSize = level*5;
+  var mapSize = level+5;
   var currentNode = new Node(
     Math.floor((Game.width)*Math.random()),
     Math.floor((Game.height)*Math.random()));
@@ -216,9 +216,10 @@ function Virus(size,speed,hp) {
     1);
   this.size = size;
   this.speed = speed;
-  this.hp = hp;
+  this.maxHp = this.hp = hp;
   this.location = null;
   this.dormant = false;
+  this.color = this.generateColoration(size,speed,hp);
 };
 
 function Node(x,y) {
@@ -231,7 +232,7 @@ function Node(x,y) {
   this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.antiVirusPower = 1;
+  this.antiVirusPower = 0.9;
   this.resilience = 1;
   this.infector = null;
 
@@ -260,7 +261,7 @@ Node.prototype.draw = function() {
 Virus.prototype.draw = function() {
   this.char = new Char(
     Sprites.VIRUS,
-    "000000",
+    ((this.hp>0) ? this.color : Colors.DEAD),
     undefined,
     1);
   this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
@@ -270,7 +271,7 @@ Virus.prototype.split = function() {
   return new Virus(
     this.mutate(this.size),
     this.mutate(this.speed),
-    this.mutate(this.hp));
+    this.mutate(this.maxHp));
 };
 
 Virus.prototype.setLocation = function(node) {
@@ -279,11 +280,36 @@ Virus.prototype.setLocation = function(node) {
 };
 
 Virus.prototype.mutate = function(value){
-  return Math.max(value+((Math.random()*2)-1),1);
+  return Math.max(value+((Math.random()*2)-1),Math.exp((1-Game.level)/10));
+};
+
+var Colors = {
+  WHITE : 'FFFFFF',
+  BULKY : 'FF0000',
+  TINY : '00FF00',
+  SPEEDY : 'FFFF00',
+  ERROR : 'FF00FF',
+  DEAD : '999999',
+  NEUTRAL : '000000'
+
+}
+
+Virus.prototype.generateColoration = function(sizeRating,speed,hp) {
+  if(sizeRating>speed&&sizeRating>hp){
+    return Colors.TINY;
+  }
+  if(speed>sizeRating&&speed>hp){
+    return Colors.SPEEDY;
+  }
+  if(hp>sizeRating&&hp>speed){
+    return Colors.BULKY;
+  }
+  return Colors.NEUTRAL;
 };
 
 Virus.prototype.update = function(dt) {
   if(this.dormant) return;
+  if(this.hp<0) this.dormant = true;
   if(this.location.infectionLevel>this.location.resilience){
     this.dormant = true;
     Game.infected++;
@@ -298,6 +324,7 @@ Virus.prototype.update = function(dt) {
     }
   } else {
     this.location.infectionLevel+=this.speed*dt;
+    this.hp-=this.location.antiVirusPower*dt;
   }
 };
 
@@ -355,7 +382,7 @@ var UI = {
           Math.floor(H.MouseCoords.x/CHAR_WIDTH),
           Math.floor(H.MouseCoords.y/CHAR_HEIGHT));
         if(virus) {
-          var newVirus = new Virus(virus.size,virus.speed,virus.hp);
+          var newVirus = new Virus(virus.size,virus.speed,virus.maxHp);
           Game.infected=0;
           Game.level++;
           Game.map.killNodes();
