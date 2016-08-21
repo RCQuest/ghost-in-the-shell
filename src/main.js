@@ -209,12 +209,10 @@ Network.prototype.generateMap = function(level) {
 };
 
 function Virus(size,speed,hp) {
-  this.char = new Char(
-    Sprites.VIRUS, 
-    "000000", 
-    undefined, 
-    1);
+  this.char = null;
   this.size = size;
+  this.uploading = true;
+  this.uploadProgress = 1;
   this.speed = speed;
   this.maxHp = this.hp = hp;
   this.location = null;
@@ -223,19 +221,14 @@ function Virus(size,speed,hp) {
 };
 
 function Node(x,y) {
-  this.char = new Char(
-    Sprites.NODE, 
-    "FFFFFF", 
-    "FF0000", 
-    1);
+  this.char = null;
   this.x = x;
   this.y = y;
   this.linkedNodes = [];
   this.infectionLevel = 0;
-  this.antiVirusPower = 0.9;
+  this.antiVirusPower = 0.49;
   this.resilience = 1;
   this.infector = null;
-
 };
 
 Node.prototype.addConnectedNode = function(node) {
@@ -263,7 +256,7 @@ Virus.prototype.draw = function() {
     Sprites.VIRUS,
     ((this.hp>0) ? this.color : Colors.DEAD),
     undefined,
-    1);
+    (this.uploadProgress>0) ? 0.5 : 1);
   this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
 };
 
@@ -323,8 +316,16 @@ Virus.prototype.update = function(dt) {
       }
     }
   } else {
-    this.location.infectionLevel+=this.speed*dt;
-    this.hp-=this.location.antiVirusPower*dt;
+    if(this.uploading){
+      this.uploadProgress-=this.size*dt;
+      if(this.uploadProgress<0) this.uploading=false;
+      else {
+        this.hp-=this.location.antiVirusPower*dt;
+      }
+    } else {
+      this.location.infectionLevel+=this.speed*dt;
+      this.hp-=this.location.antiVirusPower*dt;
+    }
   }
 };
 
