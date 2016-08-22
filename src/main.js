@@ -1,9 +1,9 @@
 var Sprites = {
   NODE: "▣",
   VIRUS: "❉",
-  ARGOLAB: "🅰",
-  MEGATEC: "🅼",
-  NANOCORP: "🅽"
+  ARGOLAB: "A",
+  MEGATEC: "M",
+  NANOCORP: "N"
 };
 
 var Colors = {
@@ -218,6 +218,23 @@ Network.prototype.generateMap = function(level) {
       }
     }
   }
+  if(Game.nodeTypes.length>0){
+    Game.nodeTypes.forEach(function(nodeType){
+      console.log(Game.nodeTypes);
+      var randomNode = H.RE(nodes);
+      if(Math.random()>0.5){
+        var x = randomNode.x;
+        for (var i = nodes.length - 1; i >= 0; i--) {
+          if(nodes[i].x==x) nodes[i].type = nodeType;
+        }
+      } else {
+        var y = randomNode.y;
+        for (var i = nodes.length - 1; i >= 0; i--) {
+          if(nodes[i].y==y) nodes[i].type = nodeType;
+        }
+      }
+    });
+  }
   return nodes;
 
 };
@@ -236,6 +253,7 @@ function Virus(size,speed,hp) {
 
 function Node(x,y) {
   this.char = null;
+  this.type = NodeTypes.NORMAL;
   this.x = x;
   this.y = y;
   this.linkedNodes = [];
@@ -258,7 +276,7 @@ Node.prototype.isInfected = function() {
 
 Node.prototype.draw = function() {
   this.char = new Char(
-    Sprites.NODE,
+    NodeTypesToSprites[this.type],
     Colors.NODE,
     this.isInfected() ? Colors.NODE_INFECTED : Colors.NODE_UNINFECTED,
     1);
@@ -348,6 +366,12 @@ var NodeTypes = {
   ARGOLAB : 3
 };
 
+var NodeTypesToSprites = {};
+NodeTypesToSprites[NodeTypes.NORMAL] = Sprites.NODE;
+NodeTypesToSprites[NodeTypes.MEGATEC] = Sprites.MEGATEC;
+NodeTypesToSprites[NodeTypes.NANOCORP] = Sprites.NANOCORP;
+NodeTypesToSprites[NodeTypes.ARGOLAB] = Sprites.ARGOLAB;
+
 var Game = {
   state : States.INIT,
   level : 1,
@@ -359,6 +383,7 @@ var Game = {
   active : true,
   width : canvas.width/CHAR_WIDTH,
   height : canvas.height/CHAR_HEIGHT,
+  nodeTypes: [],
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
   },
@@ -397,10 +422,17 @@ var Game = {
     return 1;
   },
   introduceNode : function() {
-    return;
+    var allNodeTypes = [NodeTypes.MEGATEC,NodeTypes.ARGOLAB,NodeTypes.NANOCORP];
+    for (var i = allNodeTypes.length - 1; i >= 0; i--) {
+      if(this.nodeTypes.indexOf(allNodeTypes[i])==-1){
+        this.nodeTypes.push(allNodeTypes[i]);
+        console.log("New node type: "+allNodeTypes[i]);
+        return;
+      }
+    }
   },
   resetNodeIntroductionCounter : function() {
-    return;
+    this.nodeIntroductionCounter = 3;
   }
 };
 
@@ -444,8 +476,10 @@ var UI = {
         if(virus) {
           var newVirus = new Virus(virus.size,virus.speed,virus.maxHp);
           Game.level+=Game.getLevelIncrement();
-          if(Game.infectedPercentage()>0.90) 
+          if(Game.infectedPercentage()>0.90) {
             Game.nodeIntroductionCounter--;
+            console.log("Node counter: "+Game.nodeIntroductionCounter)
+          }
           if(Game.nodeIntroductionCounter<=0) {
             Game.introduceNode();
             Game.resetNodeIntroductionCounter();
