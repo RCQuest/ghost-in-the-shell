@@ -176,7 +176,6 @@ Network.prototype.generateMapLegacy = function(level){
     var node2 = nodes[Math.floor(Math.random() * nodes.length)];
     if(node1!=node2) node1.addConnectedNode(node2);
   }
-  console.log(nodes);
   return nodes;
 }
 
@@ -209,7 +208,6 @@ Network.prototype.generateMap = function(level) {
       if(nodes[i].x==nX&&nodes[i].y==nY) isOccupied=true;
     }
     if(!isOccupied) nodes.push(new Node(nX,nY));
-    console.log(nX+","+nY);
   }
   for (var i = nodes.length - 1; i >= 0; i--) {
     for (var j = nodes.length - 1; j >= 0; j--) {
@@ -220,7 +218,6 @@ Network.prototype.generateMap = function(level) {
       }
     }
   }
-  console.log(nodes);
   return nodes;
 
 };
@@ -315,7 +312,6 @@ Virus.prototype.update = function(dt) {
   
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
       if(!this.location.linkedNodes[i].infector) {
-        console.log("splitting!");
         var newVirus = this.split();
         newVirus.setLocation(this.location.linkedNodes[i]);
         Game.player.viruses.push(newVirus);
@@ -345,10 +341,18 @@ var States = {
   DEFEAT : 3
 };
 
+var NodeTypes = {
+  NORMAL : 0,
+  MEGATEC : 1,
+  NANOCORP : 2,
+  ARGOLAB : 3
+};
+
 var Game = {
   state : States.INIT,
   level : 1,
   infected : 0,
+  nodeIntroductionCounter : 3,
   player : new Player(),
   map : null,
   time : 1,
@@ -374,6 +378,29 @@ var Game = {
   },
   baseAntiVirusLevel : function() {
     return 0.45+(this.level-1)*0.05;
+  },
+  infectedPercentage : function() {
+    return this.infected/this.map.nodes.length;
+  },
+  getLevelIncrement : function() {
+    var infectedPercentage = this.infectedPercentage();
+    if(this.level<3) return 1;
+    if(infectedPercentage>0.9){
+      return 4;
+    } 
+    if(infectedPercentage>0.8) {
+      return 3;
+    }
+    if(infectedPercentage>0.7) {
+      return 2;
+    }
+    return 1;
+  },
+  introduceNode : function() {
+    return;
+  },
+  resetNodeIntroductionCounter : function() {
+    return;
   }
 };
 
@@ -416,8 +443,14 @@ var UI = {
           Math.floor(H.MouseCoords.y/CHAR_HEIGHT));
         if(virus) {
           var newVirus = new Virus(virus.size,virus.speed,virus.maxHp);
+          Game.level+=Game.getLevelIncrement();
+          if(Game.infectedPercentage()>0.90) 
+            Game.nodeIntroductionCounter--;
+          if(Game.nodeIntroductionCounter<=0) {
+            Game.introduceNode();
+            Game.resetNodeIntroductionCounter();
+          }
           Game.infected=0;
-          Game.level++;
           Game.map.killNodes();
           Game.player.killViruses();
           Game.map = null;
@@ -427,6 +460,8 @@ var UI = {
           Game.player.viruses = [newVirus];
           newVirus.setLocation(Game.map.nodes[0]);
           Game.state=States.INFECTING;
+
+          console.log("Level "+Game.level);
         }
       }
     }
