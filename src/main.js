@@ -269,6 +269,23 @@ Node.prototype.setType = function(type) {
   }
 };
 
+Node.prototype.setModifiers = function(infectorType) {
+  if(this.type==NodeTypes.NORMAL)
+    return;
+  switch(this.type){
+    case NodeTypes.ARGOLAB:
+      if(infectorType==VirusType.TINY) this.uploadMultiplier = 0.5;
+      break;
+    case NodeTypes.MEGATEC:
+      if(infectorType==VirusType.SPEEDY) this.antivirusMultiplier = 2;
+      break;
+    case NodeTypes.NANOCORP:
+      if(infectorType==VirusType.BULKY) this.infectionMultiplier = 0.5;
+    default:
+      break;
+  }
+};
+
 Node.prototype.draw = function() {
   this.char = new Char(
     NodeTypesToSprites[this.type],
@@ -294,19 +311,6 @@ Virus.prototype.split = function() {
     this.mutate(this.maxHp));
 };
 
-var VirusType = {
-  TINY: 0,
-  SPEEDY: 1,
-  BULKY: 2,
-  NEUTRAL: 3
-};
-
-var virusTypeToColorMap = {};
-virusTypeToColorMap[VirusType.TINY] = Colors.TINY;
-virusTypeToColorMap[VirusType.SPEEDY] = Colors.SPEEDY;
-virusTypeToColorMap[VirusType.BULKY] = Colors.BULKY;
-virusTypeToColorMap[VirusType.NEUTRAL] = Colors.NEUTRAL;
-
 Virus.prototype.setType = function(sizeRating,speed,hp) {
   if(sizeRating>speed&&sizeRating>hp){
     this.type = VirusType.TINY;
@@ -326,6 +330,7 @@ Virus.prototype.setType = function(sizeRating,speed,hp) {
 Virus.prototype.setLocation = function(node) {
   this.location = node;
   node.infector = this;
+  this.location.setModifiers(this.type);
 };
 
 Virus.prototype.mutate = function(value){
@@ -374,12 +379,25 @@ var States = {
   DEFEAT : 3
 };
 
+var VirusType = {
+  TINY: 0,
+  SPEEDY: 1,
+  BULKY: 2,
+  NEUTRAL: 3
+};
+
 var NodeTypes = {
   NORMAL : 0,
   MEGATEC : 1,
   NANOCORP : 2,
   ARGOLAB : 3
 };
+
+var virusTypeToColorMap = {};
+virusTypeToColorMap[VirusType.TINY] = Colors.TINY;
+virusTypeToColorMap[VirusType.SPEEDY] = Colors.SPEEDY;
+virusTypeToColorMap[VirusType.BULKY] = Colors.BULKY;
+virusTypeToColorMap[VirusType.NEUTRAL] = Colors.NEUTRAL;
 
 var NodeTypesToSprites = {};
 NodeTypesToSprites[NodeTypes.NORMAL] = Sprites.NODE;
