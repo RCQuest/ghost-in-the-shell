@@ -154,31 +154,6 @@ function Network(level) {
   this.nodes = this.generateMap(level);
 };
 
-Network.prototype.generateMapLegacy = function(level){
-  var mapSize = level+5;
-  var currentNode = new Node(
-    Math.floor((Game.width)*Math.random()),
-    Math.floor((Game.height)*Math.random()));
-  var nodes = [];
-  nodes = [ currentNode ];
-  while(nodes.length < mapSize){
-    var node = new Node(
-      Math.floor((Game.width)*Math.random()),
-      Math.floor((Game.height)*Math.random()));
-    currentNode.addConnectedNode(node);
-    nodes.push(node);
-    if(Math.random()>0.5){
-      currentNode = node;
-    }
-  }
-  for (var i = level - 1; i >= 0; i--) {
-    var node1 = nodes[Math.floor(Math.random() * nodes.length)];
-    var node2 = nodes[Math.floor(Math.random() * nodes.length)];
-    if(node1!=node2) node1.addConnectedNode(node2);
-  }
-  return nodes;
-}
-
 Network.prototype.killNodes = function() {
   for (var i = this.nodes.length - 1; i >= 0; i--) {
     this.nodes[i].char.kill();
@@ -225,12 +200,12 @@ Network.prototype.generateMap = function(level) {
       if(Math.random()>0.5){
         var x = randomNode.x;
         for (var i = nodes.length - 1; i >= 0; i--) {
-          if(nodes[i].x==x) nodes[i].type = nodeType;
+          if(nodes[i].x==x) nodes[i].setType(nodeType);
         }
       } else {
         var y = randomNode.y;
         for (var i = nodes.length - 1; i >= 0; i--) {
-          if(nodes[i].y==y) nodes[i].type = nodeType;
+          if(nodes[i].y==y) nodes[i].setType(nodeType);
         }
       }
     });
@@ -241,6 +216,7 @@ Network.prototype.generateMap = function(level) {
 
 function Virus(size,speed,hp) {
   this.char = null;
+  this.setType(size,speed,hp);
   this.size = size;
   this.uploading = true;
   this.uploadProgress = 1;
@@ -248,7 +224,7 @@ function Virus(size,speed,hp) {
   this.maxHp = this.hp = hp;
   this.location = null;
   this.dormant = false;
-  this.color = this.generateColoration(size,speed,hp);
+  this.color = this.generateColoration(this.type);
 };
 
 function Node(x,y) {
@@ -261,6 +237,9 @@ function Node(x,y) {
   this.antiVirusPower = Game.baseAntiVirusLevel();
   this.resilience = Game.baseResilienceLevel();
   this.infector = null;
+  this.uploadMultiplier = 1;
+  this.infectionMultiplier = 1;
+  this.antivirusMultiplier = 1;
 };
 
 Node.prototype.addConnectedNode = function(node) {
@@ -272,6 +251,22 @@ Node.prototype.addConnectedNode = function(node) {
 
 Node.prototype.isInfected = function() {
   return this.infectionLevel>this.resilience;
+};
+
+Node.prototype.setType = function(type) {
+  this.type = type;
+  switch(type){
+    case NodeTypes.ARGOLAB:
+      this.antivirusMultiplier = 2;
+      break;
+    case NodeTypes.MEGATEC:
+      this.infectionMultiplier = 0.5;
+      break;
+    case NodeTypes.NANOCORP:
+      this.uploadMultiplier = 0.5;
+    default:
+      break;
+  }
 };
 
 Node.prototype.draw = function() {
@@ -299,6 +294,35 @@ Virus.prototype.split = function() {
     this.mutate(this.maxHp));
 };
 
+var VirusType = {
+  TINY: 0,
+  SPEEDY: 1,
+  BULKY: 2,
+  NEUTRAL: 3
+};
+
+var virusTypeToColorMap = {};
+virusTypeToColorMap[VirusType.TINY] = Colors.TINY;
+virusTypeToColorMap[VirusType.SPEEDY] = Colors.SPEEDY;
+virusTypeToColorMap[VirusType.BULKY] = Colors.BULKY;
+virusTypeToColorMap[VirusType.NEUTRAL] = Colors.NEUTRAL;
+
+Virus.prototype.setType = function(sizeRating,speed,hp) {
+  if(sizeRating>speed&&sizeRating>hp){
+    this.type = VirusType.TINY;
+    return;
+  }
+  if(speed>sizeRating&&speed>hp){
+    this.type = VirusType.SPEEDY;
+    return;
+  }
+  if(hp>sizeRating&&hp>speed){
+    this.type = VirusType.BULKY;
+    return;
+  }
+  this.type = VirusType.NEUTRAL;
+};
+
 Virus.prototype.setLocation = function(node) {
   this.location = node;
   node.infector = this;
@@ -308,17 +332,8 @@ Virus.prototype.mutate = function(value){
   return Math.max(value+((Math.random()*2)-1),Math.exp((1-Game.level)/10));
 };
 
-Virus.prototype.generateColoration = function(sizeRating,speed,hp) {
-  if(sizeRating>speed&&sizeRating>hp){
-    return Colors.TINY;
-  }
-  if(speed>sizeRating&&speed>hp){
-    return Colors.SPEEDY;
-  }
-  if(hp>sizeRating&&hp>speed){
-    return Colors.BULKY;
-  }
-  return Colors.NEUTRAL;
+Virus.prototype.generateColoration = function(type) {
+  return virusTypeToColorMap[type];
 };
 
 Virus.prototype.update = function(dt) {
@@ -337,14 +352,14 @@ Virus.prototype.update = function(dt) {
     }
   } else {
     if(this.uploading){
-      this.uploadProgress-=this.size*dt;
+      this.uploadProgress-=this.size*dt*this.location.uploadMultiplier;
       if(this.uploadProgress<0) this.uploading=false;
       else {
         this.hp-=this.location.antiVirusPower*dt;
       }
     } else {
-      this.location.infectionLevel+=this.speed*dt;
-      this.hp-=this.location.antiVirusPower*dt;
+      this.location.infectionLevel+=this.speed*dt*this.location.infectionMultiplier;
+      this.hp-=this.location.antiVirusPower*dt*this.location.antivirusMultiplier;
     }
   }
 };
@@ -399,10 +414,10 @@ var Game = {
     return (this.infected*2 > this.map.nodes.length);
   },
   baseResilienceLevel : function() {
-    return 1+(this.level-1)*0.2;
+    return 1+(this.level-1)*0.4;
   },
   baseAntiVirusLevel : function() {
-    return 0.45+(this.level-1)*0.05;
+    return 0.45+(this.level-1)*0.1;
   },
   infectedPercentage : function() {
     return this.infected/this.map.nodes.length;
@@ -497,6 +512,24 @@ var UI = {
 
           console.log("Level "+Game.level);
         }
+      }
+    }
+    else if(Game.state==States.DEFEAT) {
+      if(H.MouseClick){
+        var virus = Game.player.viruses[0];
+        var newVirus = new Virus(virus.size,virus.speed,virus.maxHp);
+        Game.level--;
+
+        Game.infected=0;
+        Game.map.killNodes();
+        Game.player.killViruses();
+        Game.map = null;
+        Game.map = new Network(Game.level);
+        
+        Game.player.viruses = null;
+        Game.player.viruses = [newVirus];
+        newVirus.setLocation(Game.map.nodes[0]);
+        Game.state=States.INFECTING;
       }
     }
     H.MouseClick=false;
