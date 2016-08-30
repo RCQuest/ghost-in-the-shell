@@ -6,19 +6,58 @@ var Sprites = {
   NANOCORP: "N"
 };
 
+var LOW_HP = 0.25;
+
 var Colors = {
   WHITE : 'FFFFFF',
   BULKY : 'f400b6',
+  BULKY_LOW_HP: 'C039A6',
   TINY : '88b700',
+  TINY_LOW_HP : '859D42',
   SPEEDY : '00b7b7',
+  SPEEDY_LOW_HP : '3A9DA7',
   ERROR : 'FF00FF',
   DEAD : '817e93',
-  NEUTRAL : '000000',
+  NEUTRAL : 'FFFFFF',
+  NEUTRAL_LOW_HP : 'C0BEC9',
   NODE : 'd6d0da',
   NODE_INFECTED : '444057',
   NODE_UNINFECTED : '817e93',
   BG : '363246'
 };
+
+var States = {
+  INIT : 0,
+  INFECTING : 1,
+  SUCCESS : 2,
+  DEFEAT : 3
+};
+
+var VirusType = {
+  TINY: 0,
+  SPEEDY: 1,
+  BULKY: 2,
+  NEUTRAL: 3
+};
+
+var NodeTypes = {
+  NORMAL : 0,
+  MEGATEC : 1,
+  NANOCORP : 2,
+  ARGOLAB : 3
+};
+
+var virusTypeToColorMap = {};
+virusTypeToColorMap[VirusType.TINY] = {healthy:Colors.TINY,harmed:Colors.TINY_LOW_HP};
+virusTypeToColorMap[VirusType.SPEEDY] = {healthy:Colors.SPEEDY,harmed:Colors.SPEEDY_LOW_HP};
+virusTypeToColorMap[VirusType.BULKY] = {healthy:Colors.BULKY,harmed:Colors.BULKY_LOW_HP};
+virusTypeToColorMap[VirusType.NEUTRAL] = {healthy:Colors.NEUTRAL,harmed:Colors.NEUTRAL_LOW_HP};
+
+var NodeTypesToSprites = {};
+NodeTypesToSprites[NodeTypes.NORMAL] = Sprites.NODE;
+NodeTypesToSprites[NodeTypes.MEGATEC] = Sprites.MEGATEC;
+NodeTypesToSprites[NodeTypes.NANOCORP] = Sprites.NANOCORP;
+NodeTypesToSprites[NodeTypes.ARGOLAB] = Sprites.ARGOLAB;
 
 var CHAR_HEIGHT = 30;
 var CHAR_WIDTH = 30;
@@ -224,7 +263,7 @@ function Virus(size,speed,hp) {
   this.maxHp = this.hp = hp;
   this.location = null;
   this.dormant = false;
-  this.color = this.generateColoration(this.type);
+  this.generateColoration(this.type);
 };
 
 function Node(x,y) {
@@ -298,10 +337,20 @@ Node.prototype.draw = function() {
 Virus.prototype.draw = function() {
   this.char = new Char(
     Sprites.VIRUS,
-    ((this.hp>0) ? this.color : Colors.DEAD),
+    this.determineCurrentColor(),
     undefined,
     (this.uploadProgress>0) ? 0.5 : 1);
   this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
+};
+
+Virus.prototype.determineCurrentColor = function() {
+  if(this.hp>this.maxHp*0.25){
+    return this.color;
+  } else if(this.hp>0) { 
+    return this.lowHpColor;
+  } else {
+    return Colors.DEAD;
+  }
 };
 
 Virus.prototype.split = function() {
@@ -338,7 +387,8 @@ Virus.prototype.mutate = function(value){
 };
 
 Virus.prototype.generateColoration = function(type) {
-  return virusTypeToColorMap[type];
+  this.color = virusTypeToColorMap[type].healthy;
+  this.lowHpColor = virusTypeToColorMap[type].harmed;
 };
 
 Virus.prototype.update = function(dt) {
@@ -371,39 +421,6 @@ Virus.prototype.update = function(dt) {
 
 var canvas = document.querySelector('#game');
 var ctx = canvas.getContext('2d');
-
-var States = {
-  INIT : 0,
-  INFECTING : 1,
-  SUCCESS : 2,
-  DEFEAT : 3
-};
-
-var VirusType = {
-  TINY: 0,
-  SPEEDY: 1,
-  BULKY: 2,
-  NEUTRAL: 3
-};
-
-var NodeTypes = {
-  NORMAL : 0,
-  MEGATEC : 1,
-  NANOCORP : 2,
-  ARGOLAB : 3
-};
-
-var virusTypeToColorMap = {};
-virusTypeToColorMap[VirusType.TINY] = Colors.TINY;
-virusTypeToColorMap[VirusType.SPEEDY] = Colors.SPEEDY;
-virusTypeToColorMap[VirusType.BULKY] = Colors.BULKY;
-virusTypeToColorMap[VirusType.NEUTRAL] = Colors.NEUTRAL;
-
-var NodeTypesToSprites = {};
-NodeTypesToSprites[NodeTypes.NORMAL] = Sprites.NODE;
-NodeTypesToSprites[NodeTypes.MEGATEC] = Sprites.MEGATEC;
-NodeTypesToSprites[NodeTypes.NANOCORP] = Sprites.NANOCORP;
-NodeTypesToSprites[NodeTypes.ARGOLAB] = Sprites.ARGOLAB;
 
 var Game = {
   state : States.INIT,
