@@ -30,7 +30,8 @@ var States = {
   INIT : 0,
   INFECTING : 1,
   SUCCESS : 2,
-  DEFEAT : 3
+  DEFEAT : 3,
+  METAGAME : 4
 };
 
 var VirusType = {
@@ -84,6 +85,9 @@ var H = {
   },
   RE: function(arr) {
     return arr[Math.floor(Math.random()*arr.length)];
+  },
+  ODP: function(n) {
+    return Math.round(n * 10) / 10
   }
 };
 
@@ -234,7 +238,7 @@ Network.prototype.generateMap = function(level) {
   }
   if(Game.nodeTypes.length>0){
     Game.nodeTypes.forEach(function(nodeType){
-      console.log(Game.nodeTypes);
+      Game.typeToConsole(Game.nodeTypes);
       var randomNode = H.RE(nodes);
       if(Math.random()>0.5){
         var x = randomNode.x;
@@ -335,12 +339,14 @@ Node.prototype.draw = function() {
 };
 
 Virus.prototype.draw = function() {
-  this.char = new Char(
-    Sprites.VIRUS,
-    this.determineCurrentColor(),
-    undefined,
-    (this.uploadProgress>0) ? 0.5 : 1);
-  this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
+  if(this.location) {
+    this.char = new Char(
+      Sprites.VIRUS,
+      this.determineCurrentColor(),
+      undefined,
+      (this.uploadProgress>0) ? 0.5 : 1);
+      this.char.r.stamp(UI.ctx,this.location.x,this.location.y);
+  }
 };
 
 Virus.prototype.determineCurrentColor = function() {
@@ -420,6 +426,7 @@ Virus.prototype.update = function(dt) {
 };
 
 var canvas = document.querySelector('#game');
+var htmlConsole = document.querySelector('#c');
 var ctx = canvas.getContext('2d');
 
 var Game = {
@@ -434,6 +441,7 @@ var Game = {
   width : canvas.width/CHAR_WIDTH,
   height : canvas.height/CHAR_HEIGHT,
   nodeTypes: [],
+  lastConsoleMessage: document.querySelector('#f'),
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
   },
@@ -476,13 +484,33 @@ var Game = {
     for (var i = allNodeTypes.length - 1; i >= 0; i--) {
       if(this.nodeTypes.indexOf(allNodeTypes[i])==-1){
         this.nodeTypes.push(allNodeTypes[i]);
-        console.log("New node type: "+allNodeTypes[i]);
+        Game.typeToConsole("New node type: "+allNodeTypes[i]);
         return;
       }
     }
   },
   resetNodeIntroductionCounter : function() {
     this.nodeIntroductionCounter = 3;
+  },
+  typeToConsole : function(text){
+    var para = document.createElement("div");
+    var node = document.createTextNode(text);
+    para.appendChild(node);
+
+    htmlConsole.appendChild(para);
+    this.lastConsoleMessage = para;
+  },
+  clearConsole : function(){
+    while (htmlConsole.hasChildNodes()) {
+      htmlConsole.removeChild(htmlConsole.lastChild);
+    }
+  },
+  getVirusDelta : function(newVirus,oldVirus){
+    return {
+      hp: H.ODP(newVirus.maxHp).toString()+" ("+(newVirus.maxHp-oldVirus.maxHp)+")",
+      speed: H.ODP(newVirus.speed).toString()+" ("+(newVirus.speed-oldVirus.speed)+")",
+      size: H.ODP(newVirus.size).toString()+" ("+(newVirus.size-oldVirus.size)+")"
+    }
   }
 };
 
@@ -499,20 +527,31 @@ var UI = {
       Game.player.viruses[0].setLocation(Game.map.nodes[0]);
       Game.state = States.INFECTING;
     } 
+    else if(Game.state==States.METAGAME) {
+      if(H.MouseClick){
+        var node = Game.map.getNodeFromPosition(
+          Math.floor(H.MouseCoords.x/CHAR_WIDTH),
+          Math.floor(H.MouseCoords.y/CHAR_HEIGHT));
+        if(node) {
+          Game.player.viruses[0].setLocation(node);
+          Game.state = States.INFECTING;
+        }
+      }
+    }
     else if(Game.state==States.INFECTING) {
       for (var i = Game.player.viruses.length - 1; i >= 0; i--) {
         Game.player.viruses[i].update(dt);
       }
       if(Game.allNodesAreInfected()) {
         Game.state = States.SUCCESS;
-        console.log("Infected all nodes!");
+        Game.typeToConsole("Infected all nodes!");
       } else if(Game.allVirusesAreDormant()) {
-        console.log("All viruses are dormant.");
+        Game.typeToConsole("All viruses are dormant.");
         if(Game.hasWonThisRound()) {
-          console.log("Success.");
+          Game.typeToConsole("Success.");
           Game.state = States.SUCCESS;
         } else {
-          console.log("Defeat!");
+          Game.typeToConsole("Defeat!");
           Game.state = States.DEFEAT;
         }
       }
@@ -525,10 +564,13 @@ var UI = {
           Math.floor(H.MouseCoords.y/CHAR_HEIGHT));
         if(virus) {
           var newVirus = new Virus(virus.size,virus.speed,virus.maxHp);
+
+          var virusDelta = Game.getVirusDelta(newVirus,Game.player.viruses[0]);
+
           Game.level+=Game.getLevelIncrement();
+
           if(Game.infectedPercentage()>0.90) {
             Game.nodeIntroductionCounter--;
-            console.log("Node counter: "+Game.nodeIntroductionCounter)
           }
           if(Game.nodeIntroductionCounter<=0) {
             Game.introduceNode();
@@ -542,10 +584,16 @@ var UI = {
           
           Game.player.viruses = null;
           Game.player.viruses = [newVirus];
-          newVirus.setLocation(Game.map.nodes[0]);
-          Game.state=States.INFECTING;
+          Game.state=States.METAGAME;
 
-          console.log("Level "+Game.level);
+          Game.clearConsole();
+
+          Game.typeToConsole("Your new virus stats:");
+          Game.typeToConsole("HP: "+virusDelta.hp);
+          Game.typeToConsole("SPEED: "+virusDelta.speed);
+          Game.typeToConsole("SIZE: "+virusDelta.size);
+
+          Game.typeToConsole("Level "+Game.level);
         }
       }
     }
@@ -563,8 +611,7 @@ var UI = {
         
         Game.player.viruses = null;
         Game.player.viruses = [newVirus];
-        newVirus.setLocation(Game.map.nodes[0]);
-        Game.state=States.INFECTING;
+        Game.state=States.METAGAME;
       }
     }
     H.MouseClick=false;
