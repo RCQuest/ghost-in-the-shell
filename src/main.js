@@ -88,6 +88,9 @@ var H = {
   },
   ODP: function(n) {
     return Math.round(n * 10) / 10
+  },
+  NWC: function(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 };
 
@@ -403,7 +406,9 @@ Virus.prototype.update = function(dt) {
   if(this.location.infectionLevel>this.location.resilience){
     this.dormant = true;
     Game.infected++;
-  
+
+    Game.addToCurrency(H.ODP(this.maxHp+this.size+this.speed));
+    
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
       if(!this.location.linkedNodes[i].infector) {
         var newVirus = this.split();
@@ -427,6 +432,8 @@ Virus.prototype.update = function(dt) {
 
 var canvas = document.querySelector('#game');
 var htmlConsole = document.querySelector('#c');
+var currencyHUD = document.querySelector('#hc');
+var infectionHUD = document.querySelector('#hi');
 var ctx = canvas.getContext('2d');
 
 var Game = {
@@ -441,6 +448,9 @@ var Game = {
   width : canvas.width/CHAR_WIDTH,
   height : canvas.height/CHAR_HEIGHT,
   nodeTypes: [],
+  currency: 0,
+  formattedCurrency : "0",
+  infectionAward: 1000,
   lastConsoleMessage: document.querySelector('#f'),
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
@@ -511,6 +521,10 @@ var Game = {
       speed: H.ODP(newVirus.speed).toString()+" ("+(newVirus.speed-oldVirus.speed)+")",
       size: H.ODP(newVirus.size).toString()+" ("+(newVirus.size-oldVirus.size)+")"
     }
+  },
+  addToCurrency : function(award){
+    this.currency+=this.infectionAward*award;
+    this.formattedCurrency = H.NWC(this.currency);
   }
 };
 
@@ -612,6 +626,7 @@ var UI = {
         Game.player.viruses = null;
         Game.player.viruses = [newVirus];
         Game.state=States.METAGAME;
+        Game.clearConsole();
       }
     }
     H.MouseClick=false;
@@ -625,6 +640,8 @@ var UI = {
     for (var i = Game.player.viruses.length - 1; i >= 0; i--) {
       Game.player.viruses[i].draw();
     }
+    currencyHUD.innerHTML = Game.formattedCurrency;
+    infectionHUD.innerHTML = H.ODP(Game.infected*100/Game.map.nodes.length);
   }
 }
 

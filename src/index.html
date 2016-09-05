@@ -16,9 +16,7 @@
       #c {
         width:calc(100% - 840px);
         float:right;
-        outline:1px solid #fff;
         height:calc(100vh - 40px);
-        padding:10px;
         overflow-y:scroll;
       }
       .typewriter {
@@ -33,6 +31,15 @@
       }
       #c div {
         padding-bottom:20px;
+      }
+      .b {
+        outline:1px solid #fff;
+        padding:10px;
+      }
+
+      #h {
+        padding-top:10px;
+        float:left;
       }
 
       /* The typing effect */
@@ -50,8 +57,12 @@
   </head>
   <body>
     <div id="d"><canvas id="game" width="800" height="600"></canvas></div>
-    <div id="c">
+    <div id="c" class="b">
       <div id="f">Greetings, renegade.</div>
+    </div>
+    <div id="h">
+      <span class="b"><span>£</span><span id="hc">000</span></span>
+      <span class="b"><span>NETWORK INFECTION: </span><span id="hi"></span>%</span>
     </div>
     <script src="main.js"></script>
   </body>
