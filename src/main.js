@@ -1,6 +1,6 @@
 var Levels = {
   1 : [
-    [1,2,2,2,1]
+    [1,3,4,5,1]
   ],
   3 : [
     [1,2,2,2,1],
@@ -246,9 +246,22 @@ Network.prototype.createMapFromLevelData = function(levelData) {
       switch(levelData[i][j]) {
         case 0:
           break;
-          
-        default:
+        case 1:
           nodes.push(new Node(j+xOffset,i+yOffset));
+          break;
+        case 2:
+          nodes.push(new Node(j+xOffset,i+yOffset,NodeTypes.NORMAL,false));
+          break;
+        case 3:
+          nodes.push(new Node(j+xOffset,i+yOffset,Game.getNodeIfIntroduced(NodeTypes.ARGOLAB),false));
+          break;
+        case 4:
+          nodes.push(new Node(j+xOffset,i+yOffset,Game.getNodeIfIntroduced(NodeTypes.MEGATEC),false));
+          break;
+        case 5:
+          nodes.push(new Node(j+xOffset,i+yOffset,Game.getNodeIfIntroduced(NodeTypes.NANOCORP),false));
+          break;
+        default:
           break;
       }
     }
@@ -325,11 +338,12 @@ function Virus(size,speed,hp) {
   this.generateColoration(this.type);
 };
 
-function Node(x,y) {
+function Node(x,y,nodeType,deployable) {
   this.char = null;
-  this.type = NodeTypes.NORMAL;
+  this.type = nodeType || NodeTypes.NORMAL;
   this.x = x;
   this.y = y;
+  this.deployable = deployable==null ? true : deployable;
   this.linkedNodes = [];
   this.infectionLevel = 0;
   this.antiVirusPower = Game.baseAntiVirusLevel();
@@ -577,6 +591,10 @@ var Game = {
   addToCurrency : function(award){
     this.currency+=this.infectionAward*award;
     this.formattedCurrency = H.NWC(this.currency);
+  },
+  getNodeIfIntroduced : function(nodeType){
+    if(Game.nodeTypes.indexOf(NodeTypes.ARGOLAB)==-1) return NodeTypes.NORMAL;
+    else return nodeType;
   }
 };
 
