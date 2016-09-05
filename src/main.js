@@ -1,3 +1,23 @@
+var Levels = {
+  1 : [
+    [1,2,2,2,1]
+  ],
+  3 : [
+    [1,2,2,2,1],
+    [0,2,0,0,2],
+    [0,3,0,0,4],
+    [1,2,2,2,1]
+  ],
+  5 : [
+    [1,1,1,1,1,1,1,3],
+    [0,1,0,0,0,1,0,1],
+    [0,1,1,0,0,1,0,1],
+    [0,0,4,5,0,1,0,1],
+    [1,0,0,1,0,0,0,1],
+    [1,1,1,1,1,1,1,3]
+  ]
+}
+
 var Sprites = {
   NODE: "▣",
   VIRUS: "❉",
@@ -197,7 +217,9 @@ Player.prototype.killViruses = function() {
 };
 
 function Network(level) {
-  this.nodes = this.generateMap(level);
+  console.log(level%10);
+  if(!Levels.hasOwnProperty((level%10).toString())) this.nodes = this.generateMap(level);
+  else this.nodes = this.createMapFromLevelData(Levels[(level%10).toString()]);
 };
 
 Network.prototype.killNodes = function() {
@@ -215,11 +237,46 @@ Network.prototype.getNodeFromPosition = function(x,y) {
   return null;
 };
 
+Network.prototype.createMapFromLevelData = function(levelData) {
+  var xOffset = Math.floor((Game.width/2));
+  var yOffset = Math.floor((Game.height/2));
+  var nodes = [];
+  for (var i = levelData.length - 1; i >= 0; i--) {
+    for (var j = levelData[i].length - 1; j >= 0; j--) {
+      switch(levelData[i][j]) {
+        case 0:
+          break;
+          
+        default:
+          nodes.push(new Node(j+xOffset,i+yOffset));
+          break;
+      }
+    }
+  }
+
+  return this.linkUpNodes(nodes);
+};
+
+Network.prototype.linkUpNodes = function(nodes) {
+  var direction = [[1,0],[0,1],[-1,0],[0,-1]];
+  for (var i = nodes.length - 1; i >= 0; i--) {
+    for (var j = nodes.length - 1; j >= 0; j--) {
+      for (var k = direction.length - 1; k >= 0; k--) {
+        if(nodes[i].x+direction[k][0]==nodes[j].x
+          &&nodes[i].y+direction[k][1]==nodes[j].y)
+          nodes[i].addConnectedNode(nodes[j]);
+      }
+    }
+  }
+  return nodes;
+};
+
 Network.prototype.generateMap = function(level) {
   var mapSize = level*5;
   var nodes = [];
   var direction = [[1,0],[0,1],[-1,0],[0,-1]];
   nodes = [ new Node(Math.floor(Game.width/2),Math.floor(Game.height/2)) ];
+
   while(nodes.length < mapSize){
     var nextNode = H.RE(nodes);
     var isOccupied = false;
@@ -230,15 +287,9 @@ Network.prototype.generateMap = function(level) {
     }
     if(!isOccupied) nodes.push(new Node(nX,nY));
   }
-  for (var i = nodes.length - 1; i >= 0; i--) {
-    for (var j = nodes.length - 1; j >= 0; j--) {
-      for (var k = direction.length - 1; k >= 0; k--) {
-        if(nodes[i].x+direction[k][0]==nodes[j].x
-          &&nodes[i].y+direction[k][1]==nodes[j].y)
-          nodes[i].addConnectedNode(nodes[j]);
-      }
-    }
-  }
+
+  nodes = this.linkUpNodes(nodes);
+
   if(Game.nodeTypes.length>0){
     Game.nodeTypes.forEach(function(nodeType){
       Game.typeToConsole(Game.nodeTypes);
@@ -256,6 +307,7 @@ Network.prototype.generateMap = function(level) {
       }
     });
   }
+
   return nodes;
 
 };
@@ -476,17 +528,17 @@ var Game = {
     return this.infected/this.map.nodes.length;
   },
   getLevelIncrement : function() {
-    var infectedPercentage = this.infectedPercentage();
-    if(this.level<3) return 1;
-    if(infectedPercentage>0.9){
-      return 4;
-    } 
-    if(infectedPercentage>0.8) {
-      return 3;
-    }
-    if(infectedPercentage>0.7) {
-      return 2;
-    }
+    // var infectedPercentage = this.infectedPercentage();
+    // if(this.level<3) return 1;
+    // if(infectedPercentage>0.9){
+    //   return 4;
+    // } 
+    // if(infectedPercentage>0.8) {
+    //   return 3;
+    // }
+    // if(infectedPercentage>0.7) {
+    //   return 2;
+    // }
     return 1;
   },
   introduceNode : function() {
