@@ -19,16 +19,6 @@
         height:calc(100vh - 40px);
         overflow-y:scroll;
       }
-      .typewriter {
-        overflow: hidden; /* Ensures the content is not revealed until the animation */
-        border-right: .15em solid orange; /* The typwriter cursor */
-        white-space: nowrap; /* Keeps the content on a single line */
-        margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-        letter-spacing: .15em; /* Adjust as needed */
-        animation: 
-          typing 3.5s steps(40, end),
-          blink-caret .75s step-end infinite;
-      }
       #c div {
         padding-bottom:20px;
       }
@@ -41,24 +31,12 @@
         padding-top:10px;
         float:left;
       }
-
-      /* The typing effect */
-      @keyframes typing {
-        from { width: 0 }
-        to { width: 100% }
-      }
-
-      /* The typewriter cursor effect */
-      @keyframes blink-caret {
-        from, to { border-color: transparent }
-        50% { border-color: orange; }
-      }
     </style>
   </head>
   <body>
     <div id="d"><canvas id="game" width="800" height="600"></canvas></div>
     <div id="c" class="b">
-      <div id="f">Greetings, renegade.</div>
+      <div id="f">Greetings Renegade! It is your task to evolve the perfect computer virus.</div>
     </div>
     <div id="h">
       <span class="b"><span>£</span><span id="hc">000</span></span>

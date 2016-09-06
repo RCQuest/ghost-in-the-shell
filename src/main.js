@@ -47,6 +47,22 @@ var Colors = {
   BG : '363246'
 };
 
+var SpecialNarrative = {
+  ARGOLAB : "Renegade! ARGOLAB nodes have firewall technology which helps eliminate viruses of smaller size.",
+  NANOCORP : "Renegade! NANOCORP nodes are more suspicious of bigger viruses and take longer to upload to.",
+  MEGATEC : "Renegade! MEGATEC nodes have strong firewalls that reduce infection speeds."
+};
+
+var NarrativeStack = [
+  "Renegade! Viruses will spread across a network by mutliplying to and attacking adjacent nodes.",
+  "Renegade! You should pick the virus that you suspect performed the best at infecting a particular node, or particularly strong descendants.",
+  "Renegade! Viruses that split off others will inherit the properties of their parent, but will mutate slightly, getting better or worse at random.",
+  "Renegade! As your level increases, networks will become harder to infect as our enemies adapt to our technology.",
+  "Renegade! Viruses that have turned partly grey have little HP left, and fully grey viruses have been eliminated.",
+  "Renegade! Viruses that infect a node faster probably have a higher SPEED stat.",
+  "Renegade! Viruses will appear translucent as they initially upload to a node, and smaller viruses will take less time to upload."
+];
+
 var States = {
   INIT : 0,
   INFECTING : 1,
@@ -419,7 +435,7 @@ Virus.prototype.draw = function() {
 };
 
 Virus.prototype.determineCurrentColor = function() {
-  if(this.hp>this.maxHp*0.25){
+  if(this.hp>this.maxHp*0.4){
     return this.color;
   } else if(this.hp>0) { 
     return this.lowHpColor;
@@ -506,7 +522,7 @@ var Game = {
   state : States.INIT,
   level : 1,
   infected : 0,
-  nodeIntroductionCounter : 10,
+  nodeIntroductionCounter : 5,
   player : new Player(),
   map : null,
   time : 1,
@@ -553,7 +569,7 @@ var Game = {
     }
   },
   resetNodeIntroductionCounter : function() {
-    this.nodeIntroductionCounter = 10;
+    this.nodeIntroductionCounter = 5;
   },
   typeToConsole : function(text){
     var para = document.createElement("div");
@@ -599,7 +615,10 @@ var Game = {
     averageNodePower /= this.map.nodes.length;
 
     this.difficultyMultiplier = this.difficultyError*(averageVirusPower/averageNodePower);
-    console.log(this.difficultyMultiplier);
+  },
+  triggerNarrative : function(){
+    var msg = NarrativeStack.shift();
+    if(typeof msg!=="undefined") Game.typeToConsole(msg);
   }
 };
 
@@ -677,13 +696,12 @@ var UI = {
           Game.player.viruses = [newVirus];
           Game.state=States.METAGAME;
 
-          Game.clearConsole();
-
+          Game.clearConsole();          
           Game.typeToConsole("Your new virus stats:");
           Game.typeToConsole("HP: "+virusDelta.hp);
           Game.typeToConsole("SPEED: "+virusDelta.speed);
           Game.typeToConsole("SIZE: "+virusDelta.size);
-
+          Game.triggerNarrative();
           Game.typeToConsole("Level "+Game.level);
         }
       }
@@ -703,7 +721,10 @@ var UI = {
         Game.player.viruses = null;
         Game.player.viruses = [newVirus];
         Game.state=States.METAGAME;
+        
         Game.clearConsole();
+        Game.triggerNarrative();
+        Game.typeToConsole("Level "+Game.level);
       }
     }
     H.MouseClick=false;
