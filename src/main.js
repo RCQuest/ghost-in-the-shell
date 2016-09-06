@@ -3,18 +3,19 @@ var Levels = {
     [1,3,4,5,1]
   ],
   3 : [
-    [1,2,2,2,1],
-    [0,2,0,0,2],
-    [0,3,0,0,4],
-    [1,2,2,2,1]
+    [4,4,5,2,1],
+    [1,4,5,1,2],
+    [3,3,5,3,3],
+    [1,4,5,2,1]
   ],
   5 : [
-    [1,1,1,1,1,1,1,3],
-    [0,1,0,0,0,1,0,1],
-    [0,1,1,0,0,1,0,1],
-    [0,0,4,5,0,1,0,1],
-    [1,0,0,1,0,0,0,1],
-    [1,1,1,1,1,1,1,3]
+    [1,1,1,1,1,1,1,1],
+    [3,3,3,1,1,3,3,3],
+    [1,1,0,1,1,0,1,1],
+    [1,1,5,5,5,5,1,1],
+    [1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,0,1],
+    [4,4,4,4,4,4,4,4]
   ]
 }
 
@@ -217,7 +218,6 @@ Player.prototype.killViruses = function() {
 };
 
 function Network(level) {
-  console.log(level%10);
   if(!Levels.hasOwnProperty((level%10).toString())) this.nodes = this.generateMap(level);
   else this.nodes = this.createMapFromLevelData(Levels[(level%10).toString()]);
 };
@@ -506,7 +506,7 @@ var Game = {
   state : States.INIT,
   level : 1,
   infected : 0,
-  nodeIntroductionCounter : 3,
+  nodeIntroductionCounter : 10,
   player : new Player(),
   map : null,
   time : 1,
@@ -517,7 +517,8 @@ var Game = {
   currency: 0,
   formattedCurrency : "0",
   infectionAward: 1000,
-  lastConsoleMessage: document.querySelector('#f'),
+  difficultyMultiplier: 1,
+  difficultyError: 0.7,
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
   },
@@ -533,27 +534,13 @@ var Game = {
     return (this.infected*2 > this.map.nodes.length);
   },
   baseResilienceLevel : function() {
-    return 1+(this.level-1)*0.4;
+    return (1+(this.level-1)*0.4)*Game.difficultyMultiplier;
   },
   baseAntiVirusLevel : function() {
-    return 0.45+(this.level-1)*0.1;
+    return (0.45+(this.level-1)*0.1)*Game.difficultyMultiplier;
   },
   infectedPercentage : function() {
     return this.infected/this.map.nodes.length;
-  },
-  getLevelIncrement : function() {
-    // var infectedPercentage = this.infectedPercentage();
-    // if(this.level<3) return 1;
-    // if(infectedPercentage>0.9){
-    //   return 4;
-    // } 
-    // if(infectedPercentage>0.8) {
-    //   return 3;
-    // }
-    // if(infectedPercentage>0.7) {
-    //   return 2;
-    // }
-    return 1;
   },
   introduceNode : function() {
     var allNodeTypes = [NodeTypes.MEGATEC,NodeTypes.ARGOLAB,NodeTypes.NANOCORP];
@@ -566,7 +553,7 @@ var Game = {
     }
   },
   resetNodeIntroductionCounter : function() {
-    this.nodeIntroductionCounter = 3;
+    this.nodeIntroductionCounter = 10;
   },
   typeToConsole : function(text){
     var para = document.createElement("div");
@@ -595,6 +582,24 @@ var Game = {
   getNodeIfIntroduced : function(nodeType){
     if(Game.nodeTypes.indexOf(NodeTypes.ARGOLAB)==-1) return NodeTypes.NORMAL;
     else return nodeType;
+  },
+  balanceDifficulty : function() {
+    var averageVirusPower = 0;
+    var averageNodePower = 0;
+    for (var i = this.player.viruses.length - 1; i >= 0; i--) {
+      var virus = this.player.viruses[i];
+      averageVirusPower += (virus.maxHp+virus.size+virus.speed);
+    }
+    averageVirusPower /= this.player.viruses.length;
+
+    for (var i = this.map.nodes.length - 1; i >= 0; i--) {
+      var node = this.map.nodes[i];
+      averageNodePower += (node.resilience+node.antiVirusPower*2);
+    }
+    averageNodePower /= this.map.nodes.length;
+
+    this.difficultyMultiplier = this.difficultyError*(averageVirusPower/averageNodePower);
+    console.log(this.difficultyMultiplier);
   }
 };
 
@@ -629,9 +634,11 @@ var UI = {
       if(Game.allNodesAreInfected()) {
         Game.state = States.SUCCESS;
         Game.typeToConsole("Infected all nodes!");
+        if(Game.level>5) Game.balanceDifficulty();
       } else if(Game.allVirusesAreDormant()) {
         Game.typeToConsole("All viruses are dormant.");
-        if(Game.hasWonThisRound()) {
+        if(Game.level>5) Game.balanceDifficulty();
+        if(Game.hasWonThisRound()) {  
           Game.typeToConsole("Success.");
           Game.state = States.SUCCESS;
         } else {
@@ -651,7 +658,7 @@ var UI = {
 
           var virusDelta = Game.getVirusDelta(newVirus,Game.player.viruses[0]);
 
-          Game.level+=Game.getLevelIncrement();
+          Game.level++;
 
           if(Game.infectedPercentage()>0.90) {
             Game.nodeIntroductionCounter--;
