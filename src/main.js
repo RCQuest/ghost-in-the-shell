@@ -85,6 +85,11 @@ var NodeTypes = {
   ARGOLAB : 3
 };
 
+var NodeTypeToNarrative = {};
+NodeTypeToNarrative[NodeTypes.MEGATEC] = SpecialNarrative.MEGATEC;
+NodeTypeToNarrative[NodeTypes.NANOCORP] = SpecialNarrative.NANOCORP;
+NodeTypeToNarrative[NodeTypes.ARGOLAB] = SpecialNarrative.ARGOLAB;
+
 var virusTypeToColorMap = {};
 virusTypeToColorMap[VirusType.TINY] = {healthy:Colors.TINY,harmed:Colors.TINY_LOW_HP};
 virusTypeToColorMap[VirusType.SPEEDY] = {healthy:Colors.SPEEDY,harmed:Colors.SPEEDY_LOW_HP};
@@ -563,8 +568,7 @@ var Game = {
     for (var i = allNodeTypes.length - 1; i >= 0; i--) {
       if(this.nodeTypes.indexOf(allNodeTypes[i])==-1){
         this.nodeTypes.push(allNodeTypes[i]);
-        Game.typeToConsole("New node type: "+allNodeTypes[i]);
-        return;
+        return allNodeTypes[i];
       }
     }
   },
@@ -616,9 +620,13 @@ var Game = {
 
     this.difficultyMultiplier = this.difficultyError*(averageVirusPower/averageNodePower);
   },
-  triggerNarrative : function(){
-    var msg = NarrativeStack.shift();
-    if(typeof msg!=="undefined") Game.typeToConsole(msg);
+  triggerNarrative : function(specialNarrative){
+    if(specialNarrative) {
+      Game.typeToConsole(specialNarrative);
+    } else {
+      var msg = NarrativeStack.shift();
+      if(typeof msg!=="undefined") Game.typeToConsole(msg);
+    }
   }
 };
 
@@ -683,8 +691,9 @@ var UI = {
             Game.nodeIntroductionCounter--;
           }
           if(Game.nodeIntroductionCounter<=0) {
-            Game.introduceNode();
+            var nodeIntroduced = Game.introduceNode();
             Game.resetNodeIntroductionCounter();
+            var specialNarrative = NodeTypeToNarrative[nodeIntroduced];
           }
           Game.infected=0;
           Game.map.killNodes();
@@ -701,7 +710,7 @@ var UI = {
           Game.typeToConsole("HP: "+virusDelta.hp);
           Game.typeToConsole("SPEED: "+virusDelta.speed);
           Game.typeToConsole("SIZE: "+virusDelta.size);
-          Game.triggerNarrative();
+          Game.triggerNarrative(specialNarrative);
           Game.typeToConsole("Level "+Game.level);
         }
       }
