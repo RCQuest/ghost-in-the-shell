@@ -606,7 +606,7 @@ var Game = {
     this.formattedCurrency = H.NWC(this.currency);
   },
   getNodeIfIntroduced : function(nodeType){
-    if(Game.nodeTypes.indexOf(NodeTypes.ARGOLAB)==-1) return NodeTypes.NORMAL;
+    if(Game.nodeTypes.indexOf(nodeType)==-1) return NodeTypes.NORMAL;
     else return nodeType;
   },
   balanceDifficulty : function() {
@@ -696,10 +696,12 @@ var UI = {
           if(Game.infectedPercentage()>0.90) {
             Game.nodeIntroductionCounter--;
           }
+          var specialNarrative;
           if(Game.nodeIntroductionCounter<=0) {
-            var nodeIntroduced = Game.introduceNode();
+            nodeIntroduced = Game.introduceNode();
             Game.resetNodeIntroductionCounter();
-            var specialNarrative = NodeTypeToNarrative[nodeIntroduced];
+            console.log("introduced new node");
+            specialNarrative = NodeTypeToNarrative[nodeIntroduced];
           }
           Game.infected=0;
           Game.map.killNodes();
