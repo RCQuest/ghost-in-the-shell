@@ -14,7 +14,7 @@ var Levels = {
     [1,1,0,1,1,0,1,1],
     [1,1,5,5,5,5,1,1],
     [1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1],
+    [1,4,1,1,1,1,4,1],
     [4,4,4,4,4,4,4,4]
   ]
 }
@@ -544,7 +544,7 @@ var Game = {
   infectionAward: 1000,
   difficultyMultiplier: 1,
   difficultyError: function(){
-    return H.C((((this.level-6)/30)+0.7),0.7,1.3);
+    return H.C((((this.level-6)/90)+0.6),0.6,1.1);
   },
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
@@ -596,9 +596,9 @@ var Game = {
   },
   getVirusDelta : function(newVirus,oldVirus){
     return {
-      hp: H.ODP(newVirus.maxHp).toString()+" ("+(newVirus.maxHp-oldVirus.maxHp)+")",
-      speed: H.ODP(newVirus.speed).toString()+" ("+(newVirus.speed-oldVirus.speed)+")",
-      size: H.ODP(newVirus.size).toString()+" ("+(newVirus.size-oldVirus.size)+")"
+      hp: H.ODP(newVirus.maxHp).toString()+" ("+ H.ODP(newVirus.maxHp-oldVirus.maxHp)+")",
+      speed: H.ODP(newVirus.speed).toString()+" ("+ H.ODP(newVirus.speed-oldVirus.speed)+")",
+      size: H.ODP(newVirus.size).toString()+" ("+ H.ODP(newVirus.size-oldVirus.size)+")"
     }
   },
   addToCurrency : function(award){
@@ -717,9 +717,9 @@ var UI = {
           Game.typeToConsole("Your new virus stats:");
           Game.typeToConsole("HP: "+virusDelta.hp);
           Game.typeToConsole("SPEED: "+virusDelta.speed);
-          Game.typeToConsole("SIZE: "+virusDelta.size);
+          Game.typeToConsole("UPLOAD: "+virusDelta.size);
           Game.triggerNarrative(specialNarrative);
-          Game.typeToConsole("Level "+Game.level);
+          Game.typeToConsole("Level "+Game.level+" (RESIL: "+ H.ODP(Game.baseResilienceLevel())+") (ANTIV: "+ H.ODP(Game.baseAntiVirusLevel())+")");
         }
       }
     }
