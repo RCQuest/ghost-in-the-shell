@@ -58,6 +58,7 @@ var NarrativeStack = [
   "Renegade! You should pick the virus that you suspect performed the best at infecting a particular node, or particularly strong descendants.",
   "Renegade! Viruses that split off others will inherit the properties of their parent, but will mutate slightly, getting better or worse at random.",
   "Renegade! As your level increases, networks will become harder to infect as our enemies adapt to our technology.",
+  "Renegade! Viruses are coloured based on their best stat.",
   "Renegade! Viruses that have turned partly grey have little HP left, and fully grey viruses have been eliminated.",
   "Renegade! Viruses that infect a node faster probably have a higher SPEED stat.",
   "Renegade! Viruses will appear translucent as they initially upload to a node, and smaller viruses will take less time to upload."
@@ -114,6 +115,9 @@ var H = {
       return {x: parseInt(x)*CHAR_WIDTH, y: parseInt(y)*CHAR_HEIGHT};
     else
       return {x: x*CHAR_WIDTH, y: y*CHAR_HEIGHT};
+  },
+  C: function(n,min,max) {
+    return Math.max(min,Math.min(n,max));
   },
   R: function(x, y, w, h, c, f) {
     c.fillStyle = '#'+f;
@@ -539,7 +543,9 @@ var Game = {
   formattedCurrency : "0",
   infectionAward: 1000,
   difficultyMultiplier: 1,
-  difficultyError: 0.7,
+  difficultyError: function(){
+    return H.C((((this.level-6)/30)+0.7),0.7,1.3);
+  },
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
   },
@@ -618,7 +624,7 @@ var Game = {
     }
     averageNodePower /= this.map.nodes.length;
 
-    this.difficultyMultiplier = this.difficultyError*(averageVirusPower/averageNodePower);
+    this.difficultyMultiplier = this.difficultyError()*(averageVirusPower/averageNodePower);
   },
   triggerNarrative : function(specialNarrative){
     if(specialNarrative) {
