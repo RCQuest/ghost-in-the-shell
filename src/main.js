@@ -633,6 +633,15 @@ var Game = {
       var msg = NarrativeStack.shift();
       if(typeof msg!=="undefined") Game.typeToConsole(msg);
     }
+  },
+  endOfLevelMessage : function(virusDelta,specialNarrative){
+    Game.clearConsole();          
+    Game.typeToConsole("Your virus stats:");
+    Game.typeToConsole("HP: "+virusDelta.hp);
+    Game.typeToConsole("SPEED: "+virusDelta.speed);
+    Game.typeToConsole("UPLOAD: "+virusDelta.size);
+    Game.triggerNarrative(specialNarrative);
+    Game.typeToConsole("Level "+Game.level+" (RESIL: "+ H.ODP(Game.baseResilienceLevel())+") (ANTIV: "+ H.ODP(Game.baseAntiVirusLevel())+")"); 
   }
 };
 
@@ -713,13 +722,7 @@ var UI = {
           Game.player.viruses = [newVirus];
           Game.state=States.METAGAME;
 
-          Game.clearConsole();          
-          Game.typeToConsole("Your new virus stats:");
-          Game.typeToConsole("HP: "+virusDelta.hp);
-          Game.typeToConsole("SPEED: "+virusDelta.speed);
-          Game.typeToConsole("UPLOAD: "+virusDelta.size);
-          Game.triggerNarrative(specialNarrative);
-          Game.typeToConsole("Level "+Game.level+" (RESIL: "+ H.ODP(Game.baseResilienceLevel())+") (ANTIV: "+ H.ODP(Game.baseAntiVirusLevel())+")");
+          Game.endOfLevelMessage(virusDelta,specialNarrative);
         }
       }
     }
@@ -738,10 +741,8 @@ var UI = {
         Game.player.viruses = null;
         Game.player.viruses = [newVirus];
         Game.state=States.METAGAME;
-        
-        Game.clearConsole();
-        Game.triggerNarrative();
-        Game.typeToConsole("Level "+Game.level);
+
+        Game.endOfLevelMessage({hp:H.ODP(newVirus.maxHp),speed:H.ODP(newVirus.speed),size:H.ODP(newVirus.size)},null);
       }
     }
     H.MouseClick=false;
