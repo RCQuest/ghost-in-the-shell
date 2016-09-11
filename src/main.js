@@ -544,7 +544,7 @@ var Game = {
   infectionAward: 1000,
   difficultyMultiplier: 1,
   difficultyError: function(){
-    return H.C((((this.level-6)/90)+0.6),0.6,1.1);
+    return H.C((((this.level-6)/90)+0.6),0.6,0.9);
   },
   allNodesAreInfected : function() {
     return (Game.infected>=Game.map.nodes.length);
@@ -618,11 +618,7 @@ var Game = {
     }
     averageVirusPower /= this.player.viruses.length;
 
-    for (var i = this.map.nodes.length - 1; i >= 0; i--) {
-      var node = this.map.nodes[i];
-      averageNodePower += (node.resilience+node.antiVirusPower*2);
-    }
-    averageNodePower /= this.map.nodes.length;
+    averageNodePower = (node.resilience+node.antiVirusPower*2);
 
     this.difficultyMultiplier = this.difficultyError()*(averageVirusPower/averageNodePower);
   },
