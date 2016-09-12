@@ -498,7 +498,7 @@ Virus.prototype.update = function(dt) {
     this.dormant = true;
     Game.infected++;
 
-    Game.addToCurrency(H.ODP(this.maxHp+this.size+this.speed));
+    Game.addToCurrency(3);
     
     for (var i = this.location.linkedNodes.length - 1; i >= 0; i--) {
       if(!this.location.linkedNodes[i].infector) {
@@ -666,21 +666,21 @@ var Game = {
         if(Game.currency>1e6){
           Game.upgradeVirus(virus,3,-1,-1);
           Game.addToCurrency(-1e3);
-          Game.endOfLevelMessage({hp:H.ODP(virus.maxHp),speed:H.ODP(virus.speed),size:H.ODP(virus.size)},"Virus stats altered.");
+          Game.endOfLevelMessage({hp:Game.formatHp(H.ODP(virus.maxHp)),speed:Game.formatSpeed(H.ODP(virus.speed)),size:Game.formatSize(H.ODP(virus.size))},"Virus stats altered.");
         }
       }),
       this.setUpShopButton("£1M: -1 HP, +3 SPEED, -1 UPLOAD", function(){
         if(Game.currency>1e6){
           Game.upgradeVirus(virus,-1,3,-1);
           Game.addToCurrency(-1e3);
-          Game.endOfLevelMessage({hp:H.ODP(virus.maxHp),speed:H.ODP(virus.speed),size:H.ODP(virus.size)},"Virus stats altered.");
+          Game.endOfLevelMessage({hp:Game.formatHp(H.ODP(virus.maxHp)),speed:Game.formatSpeed(H.ODP(virus.speed)),size:Game.formatSize(H.ODP(virus.size))},"Virus stats altered.");
         }
       }),
       this.setUpShopButton("£1M: -1 HP, -1 SPEED, +3 UPLOAD",function(){
         if(Game.currency>1e6){
           Game.upgradeVirus(virus,-1,-1,3);
           Game.addToCurrency(-1e3);
-          Game.endOfLevelMessage({hp:H.ODP(virus.maxHp),speed:H.ODP(virus.speed),size:H.ODP(virus.size)},"Virus stats altered.");
+          Game.endOfLevelMessage({hp:Game.formatHp(H.ODP(virus.maxHp)),speed:Game.formatSpeed(H.ODP(virus.speed)),size:Game.formatSize(H.ODP(virus.size))},"Virus stats altered.");
         }
       })
     ];
@@ -737,7 +737,6 @@ var UI = {
         if(Game.level>5) Game.balanceDifficulty();
       } else if(Game.allVirusesAreDormant()) {
         Game.typeToConsole("All viruses are dormant.");
-        if(Game.level>5) Game.balanceDifficulty();
         if(Game.hasWonThisRound()) {  
           Game.typeToConsole("Success.");
           Game.state = States.SUCCESS;
@@ -803,7 +802,7 @@ var UI = {
         Game.player.viruses = [newVirus];
         Game.state=States.METAGAME;
 
-        Game.endOfLevelMessage({hp:H.ODP(newVirus.maxHp),speed:H.ODP(newVirus.speed),size:H.ODP(newVirus.size)},null);
+        Game.endOfLevelMessage({hp:Game.formatHp(H.ODP(newVirus.maxHp)),speed:Game.formatSpeed(H.ODP(newVirus.speed)),size:Game.formatSize(H.ODP(newVirus.size))},null);
         Game.typeToConsole("[Select virus start point]");
         if(Game.currency>1e6) Game.setUpShopButtons(newVirus);
       }
